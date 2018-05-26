@@ -9,6 +9,7 @@ My code didn't worked for 255.255.255.255 address but for other worked
 '''
 import yaml
 import application
+import sys
 
 
 def make_the_data_better_for_this_prog(data):
@@ -40,27 +41,27 @@ def change_room(room, k):
 # end def
 
 
-def id_data_corrupted(data):
+def is_data_corrupted(data):
     '''
     Function to check if in room is a device id without
     any label
     :param data: data from yaml file
-    :return: True if everything is good, else False
+    :return: False if everything is good, else True
     '''
 
     for room in data:
         # i is the counter how many keys have None value
         i = 0
         for k, v in room.items():
-            if v is None:
-                if i == 2:
-                    return False
-                # end if
+            if v is None or v.isspace():
                 i += 1
+                if i == 2:
+                    return True
+                # end if
             # end if
         # end for
     # end for
-    return True
+    return False
 # end def
 
 
@@ -81,7 +82,7 @@ def yaml_parser(file_name):
 
     data = yaml.safe_load(stream)
 
-    if id_data_corrupted(data):
+    if is_data_corrupted(data):
         print("Data in file is wrongly formatted")
         exit(1)
     # end if
@@ -91,11 +92,14 @@ def yaml_parser(file_name):
 
 
 def main():
-    data = make_the_data_better_for_this_prog(yaml_parser('input.yaml'))
+    if len(sys.argv) < 2:
+        print("Please add an argument")
+        exit(1)
+    # end if
 
-    k, v = data[0]
-    print(k)
-    print(v)
+    data = make_the_data_better_for_this_prog(yaml_parser(sys.argv[1]))
+
+    print(data)
 
     app = application.init_gui(data)
     app.mainloop()
