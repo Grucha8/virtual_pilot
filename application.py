@@ -1,5 +1,10 @@
+'''
+Module only for the gui class and socket management
+'''
+
 import tkinter as tk
 from functools import partial
+import socket
 
 class Application(tk.Frame):
     '''
@@ -14,10 +19,12 @@ class Application(tk.Frame):
         '''
         super().__init__(master)
 
+        # creating a dict for page managing
         self.frames = {}
 
         self.pack()
         self.create_widgets(data)
+    # end def
 
     def create_widgets(self, data):
         '''
@@ -27,11 +34,13 @@ class Application(tk.Frame):
         '''
         self.master.title("Pilot")
 
+        # creating a container for frames
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
+        # a menu bar object
         menubar = tk.Menu(self.master)
         for page in data:
             room_name, buttons = page
@@ -46,11 +55,13 @@ class Application(tk.Frame):
 
             # add menu command for this frame
             menubar.add_command(label=room_name, command=partial(self.show_frame, room_name))
+        # end for
 
         # add quit command
         menubar.add_command(label="Quit!", command=self.master.quit)
 
         self.master.config(menu=menubar)
+    # end def
 
     def show_frame(self, page_name):
         '''
@@ -58,12 +69,14 @@ class Application(tk.Frame):
 
         :param page_name: name to which page switch
         '''
+        # for debuging purposes
         print("switching to frame: " + page_name)
         frame = self.frames[page_name]
         frame.tkraise()
+    # end def
+# end class
 
 
-# noinspection PyUnresolvedReferences
 class Frame(tk.Frame):
     '''
     Class representing frames in our main window
@@ -79,12 +92,15 @@ class Frame(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
 
-        self.buttons = []
-        self.tag_names = []
-
         self.create_buttons(data)
+    # end def
 
     def create_buttons(self, data: dict):
+        '''
+        Method for creating buttons and labels
+
+        :param data: data for creating buttons and labels in frame
+        '''
         room_name, buttons = data
 
         i = 0
@@ -96,29 +112,57 @@ class Frame(tk.Frame):
             tmp_on_but.grid(column=3, row=i)
             tmp_off_but.grid(column=4, row=i)
             i += 1
-
-        # for k, v in data.items():
-        #     tmpL = tk.Label(self, text=v)
-        #     tmpL.pack(side=tk.LEFT)
-        #
-        #     tmpB = tk.Button(self, text=k)
-        #     tmpB.pack(side=tk.LEFT)
-        #
-        #     self.buttons.append(tmpB)
-        #     self.tag_names.append(tmpL)
+        # end for
+    # end def
 
     def init_but_fun(self, button):
-        # TODO change command for socekt function
-        on_but = tk.Button(self, text='ON', command=partial(heh, f"{button} ON"))
-        off_but = tk.Button(self, text='OFF', command=partial(heh, f"{button} OFF"))
+        '''
+        Function to initialize buttons for frame
+
+        :param button: id of device
+        '''
+        on_but = tk.Button(self, text='ON', command=partial(self.send_signal, button, 'on'))
+        off_but = tk.Button(self, text='OFF', command=partial(self.send_signal, button, 'off'))
 
         return [on_but, off_but]
+    # end def
 
+    def send_signal(self, object_name, which):
+        '''
+        Method which sends UDP on a specific addres
 
-def heh(text):
-    print(text)
+        :param object_name: id of the device
+        :param which: what signal on or off
+        '''
+        #which == on/off
+        if which not in ['on', 'off']:
+            print("wrong fun")
+            return
+        #end if
 
+        msg = f'{which} {object_name}'
+        ADDR = ("255.255.255.255", 2018)
+
+        # creating, connecting and sending
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.sendto(bytes(msg, "utf-8"), ADDR)
+        except socket.error:
+            print("Could not be able to connect")
+            s.close()
+            return
+        # end try
+
+        s.close()
+    # end def
+# end class
 
 def init_gui(data):
+    '''
+    Function used to initialize our gui
+    :param data: data for interface
+    :return: gui object
+    '''
     root = tk.Tk()
     return Application(master=root, data=data)
+# end def
